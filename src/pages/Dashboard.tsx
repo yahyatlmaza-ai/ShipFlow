@@ -5,9 +5,10 @@ import {
   Package, Users, Truck, BarChart3, Bell, LogOut, RefreshCw, Plus,
   CheckCircle, XCircle, Clock, Search, X, AlertCircle, Sun, Moon,
   Download, Send, Store, Globe, Box, Send as SendIcon, CornerDownLeft,
-  UserCog, Settings as SettingsIcon, Menu, History, Target,
+  UserCog, Settings as SettingsIcon, Menu, History, Target, Languages,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { t as tr, type Language } from '../lib/i18n';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import OrderTimelineModal from '../components/OrderTimelineModal';
@@ -74,6 +75,45 @@ function TrialBanner() {
 // Overview tab
 // ---------------------------------------------------------------------------
 
+function LangSwitch() {
+  const { lang, setLang } = useApp();
+  const [open, setOpen] = useState(false);
+  const labels: Record<Language, string> = { en: 'EN', fr: 'FR', ar: 'AR' };
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-1.5 p-2 rounded-xl text-gray-500 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+        aria-label={tr(lang, 'ui_language')}
+        title={tr(lang, 'ui_language')}
+      >
+        <Languages className="w-5 h-5" />
+        <span className="text-xs font-bold">{labels[lang]}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-1 z-40 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg overflow-hidden">
+            {(['en', 'fr', 'ar'] as Language[]).map(l => (
+              <button
+                key={l}
+                onClick={() => { setLang(l); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm font-semibold ${
+                  l === lang
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                {labels[l]} — {l === 'en' ? 'English' : l === 'fr' ? 'Français' : 'العربية'}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Overview() {
   const [stats, setStats] = useState<ApiDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,11 +138,11 @@ function Overview() {
 
   const conversionPct = Math.round(((stats.rates?.conversion_rate ?? 0)) * 100);
   const cards = [
-    { label: 'Total Orders', value: stats.totals.orders, icon: Package, color: 'from-indigo-500 to-violet-500' },
-    { label: 'Delivered', value: stats.by_status.delivered, icon: CheckCircle, color: 'from-green-500 to-emerald-500' },
-    { label: 'Pending', value: stats.by_status.pending, icon: Clock, color: 'from-amber-500 to-orange-500' },
-    { label: 'Conversion', value: `${conversionPct}%`, icon: Target, color: 'from-cyan-500 to-sky-500' },
-    { label: 'Revenue (DZD)', value: formatCurrency(stats.totals.revenue_delivered), icon: BarChart3, color: 'from-rose-500 to-pink-500' },
+    { key: 'card_total_orders', value: stats.totals.orders, icon: Package, color: 'from-indigo-500 to-violet-500' },
+    { key: 'card_delivered', value: stats.by_status.delivered, icon: CheckCircle, color: 'from-green-500 to-emerald-500' },
+    { key: 'card_pending', value: stats.by_status.pending, icon: Clock, color: 'from-amber-500 to-orange-500' },
+    { key: 'card_conversion', value: `${conversionPct}%`, icon: Target, color: 'from-cyan-500 to-sky-500' },
+    { key: 'card_revenue', value: formatCurrency(stats.totals.revenue_delivered), icon: BarChart3, color: 'from-rose-500 to-pink-500' },
   ];
 
   const maxOrders = Math.max(1, ...stats.daily_30d.map(d => d.orders));
@@ -113,17 +153,17 @@ function Overview() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {cards.map(c => (
           <motion.div
-            key={c.label}
+            key={c.key}
             whileHover={{ y: -2 }}
             className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5"
           >
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center mb-3`}>
               <c.icon className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{c.label}</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{tr(lang, c.key)}</p>
             <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{c.value}</p>
-            {c.label === 'Conversion' && (
-              <p className="text-[11px] text-gray-400 mt-0.5">delivered / non-cancelled</p>
+            {c.key === 'card_conversion' && (
+              <p className="text-[11px] text-gray-400 mt-0.5">{tr(lang, 'card_conversion_sub')}</p>
             )}
           </motion.div>
         ))}
@@ -763,7 +803,7 @@ function NotificationsBell() {
 // ---------------------------------------------------------------------------
 
 export default function Dashboard() {
-  const { user, tenant, subscription, signOut, theme, setTheme, platformSettings } = useApp();
+  const { user, tenant, subscription, signOut, theme, setTheme, platformSettings, lang } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -772,25 +812,25 @@ export default function Dashboard() {
   const [brandFirst, ...brandRest] = platformName.split(' ');
   const brandSecond = brandRest.join(' ');
 
-  const tabs: Array<{ key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }> = useMemo(() => [
-    { key: 'overview', label: 'Overview', icon: BarChart3 },
-    { key: 'orders', label: 'Orders', icon: Package },
-    { key: 'customers', label: 'Customers', icon: Users },
-    { key: 'agents', label: 'Agents', icon: Truck },
-    { key: 'stores', label: 'Stores', icon: Store },
-    { key: 'carriers', label: 'Carriers', icon: Globe },
-    { key: 'products', label: 'Products', icon: Box },
-    { key: 'shipments', label: 'Shipments', icon: SendIcon },
-    { key: 'returns', label: 'Returns', icon: CornerDownLeft },
-    { key: 'team', label: 'Team', icon: UserCog },
-    { key: 'settings', label: 'Settings', icon: SettingsIcon },
+  const tabs: Array<{ key: Tab; i18nKey: string; icon: React.ComponentType<{ className?: string }> }> = useMemo(() => [
+    { key: 'overview', i18nKey: 'tab_overview', icon: BarChart3 },
+    { key: 'orders', i18nKey: 'tab_orders', icon: Package },
+    { key: 'customers', i18nKey: 'tab_customers', icon: Users },
+    { key: 'agents', i18nKey: 'tab_agents', icon: Truck },
+    { key: 'stores', i18nKey: 'tab_stores', icon: Store },
+    { key: 'carriers', i18nKey: 'tab_carriers', icon: Globe },
+    { key: 'products', i18nKey: 'tab_products', icon: Box },
+    { key: 'shipments', i18nKey: 'tab_shipments', icon: SendIcon },
+    { key: 'returns', i18nKey: 'tab_returns', icon: CornerDownLeft },
+    { key: 'team', i18nKey: 'tab_team', icon: UserCog },
+    { key: 'settings', i18nKey: 'tab_settings', icon: SettingsIcon },
   ], []);
 
   const logout = () => { signOut(); navigate('/'); };
   const go = (k: Tab) => { setTab(k); setMobileNavOpen(false); };
 
   const trialExpired = subscription?.plan === 'expired' || (subscription?.plan === 'trial' && subscription.days_left <= 0);
-  const activeLabel = tabs.find(t => t.key === tab)?.label ?? 'Overview';
+  const activeLabel = tr(lang, tabs.find(t => t.key === tab)?.i18nKey ?? 'tab_overview');
   const userInitial = (user?.name || user?.email || 'U').trim().charAt(0).toUpperCase();
 
   const Sidebar = (
@@ -813,8 +853,8 @@ export default function Dashboard() {
 
       {subscription?.plan === 'trial' && subscription.days_left > 0 && (
         <div className="mx-3 mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200/60 dark:border-indigo-800/40">
-          <div className="text-xs font-bold text-indigo-700 dark:text-indigo-300">Free trial</div>
-          <div className="text-[11px] text-indigo-500 mt-0.5">{subscription.days_left} days left</div>
+          <div className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{tr(lang, 'trial_title')}</div>
+          <div className="text-[11px] text-indigo-500 mt-0.5">{subscription.days_left} {tr(lang, 'trial_days_left')}</div>
         </div>
       )}
 
@@ -830,7 +870,7 @@ export default function Dashboard() {
             }`}
           >
             <t.icon className="w-5 h-5 flex-shrink-0" />
-            {t.label}
+            {tr(lang, t.i18nKey)}
           </button>
         ))}
       </nav>
@@ -846,8 +886,8 @@ export default function Dashboard() {
           </div>
           <button
             onClick={logout}
-            title="Sign out"
-            aria-label="Sign out"
+            title={tr(lang, 'ui_sign_out')}
+            aria-label={tr(lang, 'ui_sign_out')}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <LogOut className="w-4 h-4" />
@@ -883,6 +923,7 @@ export default function Dashboard() {
           <h1 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex-1 truncate">{activeLabel}</h1>
           <div className="flex items-center gap-1 sm:gap-2">
             <NotificationsBell />
+            <LangSwitch />
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-xl text-gray-500 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800"

@@ -57,12 +57,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     resolverRef.current = null;
   };
 
-  // Close on Escape.
+  // Close on Escape. We intentionally do NOT bind Enter at the window level —
+  // the autoFocus Confirm button already handles Enter natively, and binding
+  // it globally would hijack Enter when focus is on the Cancel button and
+  // silently confirm destructive actions.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') resolve(false);
-      if (e.key === 'Enter') resolve(true);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
