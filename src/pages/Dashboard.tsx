@@ -5,9 +5,13 @@ import {
   Package, Users, Truck, BarChart3, Bell, LogOut, RefreshCw, Plus,
   CheckCircle, XCircle, Clock, Search, X, AlertCircle, Sun, Moon,
   Download, Send, Store, Globe, Box, Send as SendIcon, CornerDownLeft,
-  UserCog, Settings as SettingsIcon, Menu,
+  UserCog, Settings as SettingsIcon, Menu, History, Target, Languages,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { t as tr, type Language } from '../lib/i18n';
+import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
+import OrderTimelineModal from '../components/OrderTimelineModal';
 import Logo from '../components/Logo';
 import TrialExpiredWall from '../components/TrialExpiredWall';
 import {
@@ -71,6 +75,45 @@ function TrialBanner() {
 // Overview tab
 // ---------------------------------------------------------------------------
 
+function LangSwitch() {
+  const { lang, setLang } = useApp();
+  const [open, setOpen] = useState(false);
+  const labels: Record<Language, string> = { en: 'EN', fr: 'FR', ar: 'AR' };
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-1.5 p-2 rounded-xl text-gray-500 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+        aria-label={tr(lang, 'ui_language')}
+        title={tr(lang, 'ui_language')}
+      >
+        <Languages className="w-5 h-5" />
+        <span className="text-xs font-bold">{labels[lang]}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-1 z-40 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg overflow-hidden">
+            {(['en', 'fr', 'ar'] as Language[]).map(l => (
+              <button
+                key={l}
+                onClick={() => { setLang(l); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm font-semibold ${
+                  l === lang
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                {labels[l]} — {l === 'en' ? 'English' : l === 'fr' ? 'Français' : 'العربية'}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Overview() {
   const [stats, setStats] = useState<ApiDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,11 +136,13 @@ function Overview() {
   if (err) return <div className="p-4 bg-red-900/20 border border-red-700/40 rounded-2xl text-red-300">{err}</div>;
   if (!stats) return null;
 
+  const conversionPct = Math.round(((stats.rates?.conversion_rate ?? 0)) * 100);
   const cards = [
-    { label: 'Total Orders', value: stats.totals.orders, icon: Package, color: 'from-indigo-500 to-violet-500' },
-    { label: 'Delivered', value: stats.by_status.delivered, icon: CheckCircle, color: 'from-green-500 to-emerald-500' },
-    { label: 'Pending', value: stats.by_status.pending, icon: Clock, color: 'from-amber-500 to-orange-500' },
-    { label: 'Revenue (DZD)', value: formatCurrency(stats.totals.revenue_delivered), icon: BarChart3, color: 'from-rose-500 to-pink-500' },
+    { key: 'card_total_orders', value: stats.totals.orders, icon: Package, color: 'from-indigo-500 to-violet-500' },
+    { key: 'card_delivered', value: stats.by_status.delivered, icon: CheckCircle, color: 'from-green-500 to-emerald-500' },
+    { key: 'card_pending', value: stats.by_status.pending, icon: Clock, color: 'from-amber-500 to-orange-500' },
+    { key: 'card_conversion', value: `${conversionPct}%`, icon: Target, color: 'from-cyan-500 to-sky-500' },
+    { key: 'card_revenue', value: formatCurrency(stats.totals.revenue_delivered), icon: BarChart3, color: 'from-rose-500 to-pink-500' },
   ];
 
   const maxOrders = Math.max(1, ...stats.daily_30d.map(d => d.orders));
@@ -105,18 +150,21 @@ function Overview() {
   return (
     <div className="space-y-6">
       <TrialBanner />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {cards.map(c => (
           <motion.div
-            key={c.label}
+            key={c.key}
             whileHover={{ y: -2 }}
             className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5"
           >
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center mb-3`}>
               <c.icon className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{c.label}</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{tr(lang, c.key)}</p>
             <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{c.value}</p>
+            {c.key === 'card_conversion' && (
+              <p className="text-[11px] text-gray-400 mt-0.5">{tr(lang, 'card_conversion_sub')}</p>
+            )}
           </motion.div>
         ))}
       </div>
@@ -168,6 +216,8 @@ function Overview() {
 
 function OrdersTab() {
   const { lang } = useApp();
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
   const [agents, setAgents] = useState<ApiAgent[]>([]);
@@ -177,6 +227,7 @@ function OrdersTab() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [showNew, setShowNew] = useState(false);
+  const [timelineOrder, setTimelineOrder] = useState<ApiOrder | null>(null);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -207,21 +258,46 @@ function OrdersTab() {
     if (!next) return;
     try {
       await ordersApi.status(o.id, next);
+      toast.success('Order advanced', `${o.reference} → ${STATUS_LABEL[next].toLowerCase()}`);
       refresh();
     } catch (e) {
-      alert(humanizeError(e, lang));
+      toast.error('Could not advance order', humanizeError(e, lang));
     }
   };
 
   const bulk = async (action: 'confirm' | 'cancel') => {
     if (selected.size === 0) return;
+    const count = selected.size;
+    const ok = await confirmAction({
+      title: action === 'confirm'
+        ? `Confirm ${count} order${count === 1 ? '' : 's'}?`
+        : `Cancel ${count} order${count === 1 ? '' : 's'}?`,
+      description: action === 'confirm'
+        ? 'Selected orders will move to Confirmed and customers will be notified.'
+        : 'Selected orders will be marked as Cancelled. This cannot be undone.',
+      confirmLabel: action === 'confirm' ? 'Confirm all' : 'Cancel all',
+      danger: action === 'cancel',
+    });
+    if (!ok) return;
     try {
       const fn = action === 'confirm' ? ordersApi.bulkConfirm : ordersApi.bulkCancel;
       await fn(Array.from(selected));
+      toast.success(
+        action === 'confirm' ? `${count} order${count === 1 ? '' : 's'} confirmed` : `${count} order${count === 1 ? '' : 's'} cancelled`,
+      );
       setSelected(new Set());
       refresh();
     } catch (e) {
-      alert(humanizeError(e, lang));
+      toast.error('Bulk action failed', humanizeError(e, lang));
+    }
+  };
+
+  const allVisibleSelected = orders.length > 0 && orders.every(o => selected.has(o.id));
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(orders.map(o => o.id)));
     }
   };
 
@@ -246,10 +322,18 @@ function OrdersTab() {
           {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         {selected.size > 0 && (
-          <>
-            <button onClick={() => bulk('confirm')} className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl">Confirm {selected.size}</button>
-            <button onClick={() => bulk('cancel')} className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl">Cancel {selected.size}</button>
-          </>
+          <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl">
+            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{selected.size} selected</span>
+            <button onClick={() => bulk('confirm')} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg inline-flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" /> Confirm
+            </button>
+            <button onClick={() => bulk('cancel')} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg inline-flex items-center gap-1">
+              <XCircle className="w-3.5 h-3.5" /> Cancel
+            </button>
+            <button onClick={() => setSelected(new Set())} className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg" aria-label="Clear selection">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
         <a
           href={ordersApi.exportCsvUrl()}
@@ -272,7 +356,14 @@ function OrdersTab() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                <th className="px-4 py-3 text-left w-10"></th>
+                <th className="px-4 py-3 text-left w-10">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all orders"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left">Reference</th>
                 <th className="px-4 py-3 text-left">Customer</th>
                 <th className="px-4 py-3 text-left">Product</th>
@@ -308,14 +399,24 @@ function OrdersTab() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {o.status !== 'delivered' && o.status !== 'cancelled' && (
+                      <div className="inline-flex items-center gap-1 justify-end">
                         <button
-                          onClick={() => advanceStatus(o)}
-                          className="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg inline-flex items-center gap-1"
+                          onClick={() => setTimelineOrder(o)}
+                          className="p-1.5 text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"
+                          title="View timeline"
+                          aria-label="View timeline"
                         >
-                          <Send className="w-3 h-3" /> Advance
+                          <History className="w-4 h-4" />
                         </button>
-                      )}
+                        {o.status !== 'delivered' && o.status !== 'cancelled' && (
+                          <button
+                            onClick={() => advanceStatus(o)}
+                            className="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg inline-flex items-center gap-1"
+                          >
+                            <Send className="w-3 h-3" /> Advance
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -326,6 +427,7 @@ function OrdersTab() {
       </div>
 
       {showNew && <NewOrderModal customers={customers} agents={agents} onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); refresh(); }} />}
+      {timelineOrder && <OrderTimelineModal order={timelineOrder} onClose={() => setTimelineOrder(null)} />}
     </div>
   );
 }
@@ -416,6 +518,8 @@ function NewOrderModal({
 
 function CustomersTab() {
   const { lang } = useApp();
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [items, setItems] = useState<ApiCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -447,9 +551,20 @@ function CustomersTab() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('Delete this customer?')) return;
-    try { await customersApi.remove(id); refresh(); }
-    catch (e) { alert(humanizeError(e, lang)); }
+    const ok = await confirmAction({
+      title: 'Delete this customer?',
+      description: 'Linked orders stay, but the customer profile will be removed.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await customersApi.remove(id);
+      toast.success('Customer removed');
+      refresh();
+    } catch (e) {
+      toast.error('Delete failed', humanizeError(e, lang));
+    }
   };
 
   return (
@@ -516,6 +631,7 @@ function CustomersTab() {
 
 function AgentsTab() {
   const { lang } = useApp();
+  const toast = useToast();
   const [items, setItems] = useState<ApiAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -544,8 +660,13 @@ function AgentsTab() {
   };
 
   const toggle = async (a: ApiAgent) => {
-    try { await agentsApi.update(a.id, { active: !a.active }); refresh(); }
-    catch (e) { alert(humanizeError(e, lang)); }
+    try {
+      await agentsApi.update(a.id, { active: !a.active });
+      toast.success(a.active ? 'Agent deactivated' : 'Agent activated');
+      refresh();
+    } catch (e) {
+      toast.error('Update failed', humanizeError(e, lang));
+    }
   };
 
   return (
@@ -682,7 +803,7 @@ function NotificationsBell() {
 // ---------------------------------------------------------------------------
 
 export default function Dashboard() {
-  const { user, tenant, subscription, signOut, theme, setTheme, platformSettings } = useApp();
+  const { user, tenant, subscription, signOut, theme, setTheme, platformSettings, lang } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -691,25 +812,25 @@ export default function Dashboard() {
   const [brandFirst, ...brandRest] = platformName.split(' ');
   const brandSecond = brandRest.join(' ');
 
-  const tabs: Array<{ key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }> = useMemo(() => [
-    { key: 'overview', label: 'Overview', icon: BarChart3 },
-    { key: 'orders', label: 'Orders', icon: Package },
-    { key: 'customers', label: 'Customers', icon: Users },
-    { key: 'agents', label: 'Agents', icon: Truck },
-    { key: 'stores', label: 'Stores', icon: Store },
-    { key: 'carriers', label: 'Carriers', icon: Globe },
-    { key: 'products', label: 'Products', icon: Box },
-    { key: 'shipments', label: 'Shipments', icon: SendIcon },
-    { key: 'returns', label: 'Returns', icon: CornerDownLeft },
-    { key: 'team', label: 'Team', icon: UserCog },
-    { key: 'settings', label: 'Settings', icon: SettingsIcon },
+  const tabs: Array<{ key: Tab; i18nKey: string; icon: React.ComponentType<{ className?: string }> }> = useMemo(() => [
+    { key: 'overview', i18nKey: 'tab_overview', icon: BarChart3 },
+    { key: 'orders', i18nKey: 'tab_orders', icon: Package },
+    { key: 'customers', i18nKey: 'tab_customers', icon: Users },
+    { key: 'agents', i18nKey: 'tab_agents', icon: Truck },
+    { key: 'stores', i18nKey: 'tab_stores', icon: Store },
+    { key: 'carriers', i18nKey: 'tab_carriers', icon: Globe },
+    { key: 'products', i18nKey: 'tab_products', icon: Box },
+    { key: 'shipments', i18nKey: 'tab_shipments', icon: SendIcon },
+    { key: 'returns', i18nKey: 'tab_returns', icon: CornerDownLeft },
+    { key: 'team', i18nKey: 'tab_team', icon: UserCog },
+    { key: 'settings', i18nKey: 'tab_settings', icon: SettingsIcon },
   ], []);
 
   const logout = () => { signOut(); navigate('/'); };
   const go = (k: Tab) => { setTab(k); setMobileNavOpen(false); };
 
   const trialExpired = subscription?.plan === 'expired' || (subscription?.plan === 'trial' && subscription.days_left <= 0);
-  const activeLabel = tabs.find(t => t.key === tab)?.label ?? 'Overview';
+  const activeLabel = tr(lang, tabs.find(t => t.key === tab)?.i18nKey ?? 'tab_overview');
   const userInitial = (user?.name || user?.email || 'U').trim().charAt(0).toUpperCase();
 
   const Sidebar = (
@@ -732,8 +853,8 @@ export default function Dashboard() {
 
       {subscription?.plan === 'trial' && subscription.days_left > 0 && (
         <div className="mx-3 mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200/60 dark:border-indigo-800/40">
-          <div className="text-xs font-bold text-indigo-700 dark:text-indigo-300">Free trial</div>
-          <div className="text-[11px] text-indigo-500 mt-0.5">{subscription.days_left} days left</div>
+          <div className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{tr(lang, 'trial_title')}</div>
+          <div className="text-[11px] text-indigo-500 mt-0.5">{subscription.days_left} {tr(lang, 'trial_days_left')}</div>
         </div>
       )}
 
@@ -749,7 +870,7 @@ export default function Dashboard() {
             }`}
           >
             <t.icon className="w-5 h-5 flex-shrink-0" />
-            {t.label}
+            {tr(lang, t.i18nKey)}
           </button>
         ))}
       </nav>
@@ -765,8 +886,8 @@ export default function Dashboard() {
           </div>
           <button
             onClick={logout}
-            title="Sign out"
-            aria-label="Sign out"
+            title={tr(lang, 'ui_sign_out')}
+            aria-label={tr(lang, 'ui_sign_out')}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <LogOut className="w-4 h-4" />
@@ -802,6 +923,7 @@ export default function Dashboard() {
           <h1 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex-1 truncate">{activeLabel}</h1>
           <div className="flex items-center gap-1 sm:gap-2">
             <NotificationsBell />
+            <LangSwitch />
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-xl text-gray-500 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800"
