@@ -335,12 +335,19 @@ function OrdersTab() {
             </button>
           </div>
         )}
-        <a
-          href={ordersApi.exportCsvUrl()}
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await ordersApi.downloadCsv();
+            } catch (e) {
+              toast.error('CSV export failed', humanizeError(e, lang));
+            }
+          }}
           className="px-4 py-2.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-bold rounded-xl inline-flex items-center gap-2"
         >
           <Download className="w-4 h-4" /> CSV
-        </a>
+        </button>
         <button
           onClick={() => setShowNew(true)}
           className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl inline-flex items-center gap-2"
@@ -661,7 +668,15 @@ function AgentsTab() {
 
   const toggle = async (a: ApiAgent) => {
     try {
-      await agentsApi.update(a.id, { active: !a.active });
+      // Backend PUT /agents/{id} requires the full AgentIn payload (name is
+      // mandatory, min_length=1), not a partial patch — sending just { active }
+      // returns 422. Re-send the agent's existing fields alongside the toggle.
+      await agentsApi.update(a.id, {
+        name: a.name,
+        phone: a.phone,
+        zone: a.zone,
+        active: !a.active,
+      });
       toast.success(a.active ? 'Agent deactivated' : 'Agent activated');
       refresh();
     } catch (e) {
@@ -716,7 +731,7 @@ function AgentsTab() {
                 <td className="px-4 py-3 text-gray-500">{a.assigned_open}</td>
                 <td className="px-4 py-3 text-green-500 font-bold">{a.delivered_count}</td>
                 <td className="px-4 py-3 text-red-400 font-bold">{a.failed_count}</td>
-                <td className="px-4 py-3 text-gray-500">{(a.on_time_rate * 100).toFixed(0)}%</td>
+                <td className="px-4 py-3 text-gray-500">{a.on_time_rate.toFixed(0)}%</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => toggle(a)}

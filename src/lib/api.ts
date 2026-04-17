@@ -289,6 +289,26 @@ export const ordersApi = {
       '/orders/bulk/cancel', { method: 'POST', body: { ids } },
     ),
   exportCsvUrl: () => `${API_URL}/orders/export.csv`,
+  // Use a programmatic download because the CSV endpoint is behind JWT auth
+  // and a plain <a href> navigation cannot send the Authorization header.
+  downloadCsv: async (): Promise<void> => {
+    const token = getToken();
+    const resp = await fetch(`${API_URL}/orders/export.csv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) {
+      throw new ApiError(`HTTP_${resp.status}`, `HTTP ${resp.status}`, {}, resp.status);
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const notificationsApi = {

@@ -58,9 +58,16 @@ else:
     DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # JWT
+#
+# A stable default is used when AUTOFLOW_JWT_SECRET is not set so that every
+# worker process (and every restart of the same process) signs tokens with the
+# same key. A random-per-process fallback looks safe but silently logs users
+# out on every restart and causes intermittent 401s in multi-worker
+# deployments (uvicorn --workers, Fly scaling). Production deployments must
+# still override AUTOFLOW_JWT_SECRET with a real secret.
 JWT_SECRET = _env(
     "AUTOFLOW_JWT_SECRET",
-    "change-me-in-production-autoflow-" + os.urandom(8).hex(),
+    "change-me-in-production-autoflow-insecure-default-key",
 )
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days

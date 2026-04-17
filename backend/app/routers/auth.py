@@ -67,7 +67,10 @@ def _serialize_tenant(t: Tenant) -> dict[str, Any]:
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def signup(body: SignupRequest, session: Session = Depends(get_session)) -> AuthResponse:
-    existing = session.exec(select(User).where(User.email == body.email)).first()
+    # Emails are stored lowercased (see line 94) so the duplicate check must
+    # also normalise — otherwise "User@example.com" bypasses this guard and
+    # then trips the DB unique constraint with a 500.
+    existing = session.exec(select(User).where(User.email == body.email.lower())).first()
     if existing:
         raise AppError(
             code="EMAIL_EXISTS",
