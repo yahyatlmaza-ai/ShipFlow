@@ -302,3 +302,233 @@ export const subscriptionsApi = {
 export const dashboardApi = {
   stats: () => api<ApiDashboardStats>('/dashboard/stats'),
 };
+
+// ---------------------------------------------------------------------------
+// Octomatic-style resources: stores, carriers+rates, products, shipments,
+// returns, team+confirmations, settings, webhooks.
+// ---------------------------------------------------------------------------
+
+export interface ApiStore {
+  id: number;
+  name: string;
+  platform: string;
+  url: string;
+  api_key_preview: string;
+  api_secret_set: boolean;
+  active: boolean;
+  orders_imported: number;
+  last_sync_at: string | null;
+  created_at: string | null;
+}
+
+export interface ApiCarrier {
+  id: number;
+  name: string;
+  provider: string;
+  api_id_preview: string;
+  api_token_set: boolean;
+  active: boolean;
+  supports_cod: boolean;
+  supports_desk: boolean;
+  supports_home: boolean;
+  created_at: string | null;
+}
+
+export interface ApiDeliveryRate {
+  id: number;
+  carrier_id: number;
+  wilaya: string;
+  home_price: number;
+  desk_price: number;
+  product_id: number | null;
+}
+
+export interface ApiProduct {
+  id: number;
+  sku: string;
+  name: string;
+  description: string;
+  price: number;
+  cost: number;
+  stock: number;
+  active: boolean;
+  image_url: string;
+  created_at: string | null;
+}
+
+export interface ApiShipment {
+  id: number;
+  order_id: number;
+  carrier_id: number | null;
+  carrier_name: string | null;
+  tracking_number: string;
+  label_url: string;
+  status: 'pending' | 'printed' | 'in_transit' | 'delivered' | 'failed';
+  delivery_type: 'home' | 'desk';
+  cost: number;
+  notes: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ApiReturn {
+  id: number;
+  order_id: number;
+  reason: string;
+  status: 'requested' | 'received' | 'restocked' | 'refunded' | 'rejected';
+  notes: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ApiTeamMember {
+  id: number;
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+  pay_per_confirmed: number;
+  active: boolean;
+  confirmed_count: number;
+  payout_due: number;
+  created_at: string | null;
+}
+
+export interface ApiConfirmationAttempt {
+  id: number;
+  order_id: number;
+  team_member_id: number | null;
+  result: 'no_answer' | 'confirmed' | 'rejected' | 'callback' | 'wrong_number';
+  note: string;
+  created_at: string | null;
+}
+
+export interface ApiTenantSettings {
+  tenant_id: number;
+  company_name: string;
+  company_address: string;
+  company_phone: string;
+  logo_url: string;
+  default_currency: string;
+  whatsapp_number: string;
+  sms_sender_id: string;
+  auto_confirm_enabled: boolean;
+  auto_assign_enabled: boolean;
+  customer_sms_template: string;
+  fraud_return_threshold: number;
+  updated_at: string | null;
+}
+
+export interface ApiWebhook {
+  id: number;
+  event: string;
+  url: string;
+  secret_set: boolean;
+  active: boolean;
+  created_at: string | null;
+  secret?: string;
+}
+
+export const storesApi = {
+  platforms: () => api<{ platforms: string[] }>('/stores/platforms'),
+  list: () => api<ApiStore[]>('/stores'),
+  create: (body: Partial<ApiStore> & { api_key?: string; api_secret?: string }) =>
+    api<ApiStore>('/stores', { method: 'POST', body }),
+  update: (id: number, body: Partial<ApiStore> & { api_key?: string; api_secret?: string }) =>
+    api<ApiStore>(`/stores/${id}`, { method: 'PUT', body }),
+  sync: (id: number) => api<{ ok: boolean; store: ApiStore }>(`/stores/${id}/sync`, { method: 'POST' }),
+  remove: (id: number) => api<void>(`/stores/${id}`, { method: 'DELETE' }),
+};
+
+export const carriersApi = {
+  providers: () => api<{ providers: string[]; wilayas: string[] }>('/carriers/providers'),
+  list: () => api<ApiCarrier[]>('/carriers'),
+  create: (body: Partial<ApiCarrier> & { api_id?: string; api_token?: string }) =>
+    api<ApiCarrier>('/carriers', { method: 'POST', body }),
+  update: (id: number, body: Partial<ApiCarrier> & { api_id?: string; api_token?: string }) =>
+    api<ApiCarrier>(`/carriers/${id}`, { method: 'PUT', body }),
+  remove: (id: number) => api<void>(`/carriers/${id}`, { method: 'DELETE' }),
+  rates: (carrier_id: number) => api<ApiDeliveryRate[]>(`/carriers/${carrier_id}/rates`),
+  createRate: (
+    carrier_id: number,
+    body: { wilaya: string; home_price: number; desk_price: number; product_id?: number | null },
+  ) =>
+    api<ApiDeliveryRate>(`/carriers/${carrier_id}/rates`, {
+      method: 'POST',
+      body: { ...body, carrier_id },
+    }),
+  removeRate: (rate_id: number) => api<void>(`/carriers/rates/${rate_id}`, { method: 'DELETE' }),
+};
+
+export const productsApi = {
+  list: (q = '') => api<ApiProduct[]>(`/products${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  create: (body: Partial<ApiProduct>) => api<ApiProduct>('/products', { method: 'POST', body }),
+  update: (id: number, body: Partial<ApiProduct>) =>
+    api<ApiProduct>(`/products/${id}`, { method: 'PUT', body }),
+  remove: (id: number) => api<void>(`/products/${id}`, { method: 'DELETE' }),
+};
+
+export const shipmentsApi = {
+  list: (status_filter?: string) =>
+    api<ApiShipment[]>(`/shipments${status_filter ? `?status_filter=${status_filter}` : ''}`),
+  create: (body: {
+    order_id: number;
+    carrier_id?: number | null;
+    delivery_type?: 'home' | 'desk';
+    cost?: number;
+    notes?: string;
+  }) => api<ApiShipment>('/shipments', { method: 'POST', body }),
+  setStatus: (id: number, status: ApiShipment['status']) =>
+    api<ApiShipment>(`/shipments/${id}/status`, { method: 'POST', body: { status } }),
+  printLabel: (id: number) => api<ApiShipment>(`/shipments/${id}/label`, { method: 'POST' }),
+  remove: (id: number) => api<void>(`/shipments/${id}`, { method: 'DELETE' }),
+};
+
+export const returnsApi = {
+  list: () => api<ApiReturn[]>('/returns'),
+  stats: () =>
+    api<{ total: number; by_status: Record<string, number>; return_rate: number }>(
+      '/returns/stats',
+    ),
+  create: (body: {
+    order_id: number;
+    reason?: string;
+    status?: ApiReturn['status'];
+    notes?: string;
+  }) => api<ApiReturn>('/returns', { method: 'POST', body }),
+  update: (id: number, body: Partial<ApiReturn>) =>
+    api<ApiReturn>(`/returns/${id}`, { method: 'PUT', body }),
+  remove: (id: number) => api<void>(`/returns/${id}`, { method: 'DELETE' }),
+};
+
+export const teamApi = {
+  list: () => api<ApiTeamMember[]>('/team'),
+  create: (body: Partial<ApiTeamMember>) => api<ApiTeamMember>('/team', { method: 'POST', body }),
+  update: (id: number, body: Partial<ApiTeamMember>) =>
+    api<ApiTeamMember>(`/team/${id}`, { method: 'PUT', body }),
+  remove: (id: number) => api<void>(`/team/${id}`, { method: 'DELETE' }),
+  confirmations: (order_id?: number) =>
+    api<ApiConfirmationAttempt[]>(
+      `/team/confirmations${order_id ? `?order_id=${order_id}` : ''}`,
+    ),
+  recordConfirmation: (body: {
+    order_id: number;
+    team_member_id?: number | null;
+    result: ApiConfirmationAttempt['result'];
+    note?: string;
+  }) => api<ApiConfirmationAttempt>('/team/confirmations', { method: 'POST', body }),
+};
+
+export const settingsApi = {
+  get: () => api<ApiTenantSettings>('/settings'),
+  update: (body: Partial<ApiTenantSettings>) =>
+    api<ApiTenantSettings>('/settings', { method: 'PUT', body }),
+};
+
+export const webhooksApi = {
+  events: () => api<{ events: string[] }>('/webhooks/events'),
+  list: () => api<ApiWebhook[]>('/webhooks'),
+  create: (body: { event: string; url: string; active?: boolean }) =>
+    api<ApiWebhook>('/webhooks', { method: 'POST', body }),
+  remove: (id: number) => api<void>(`/webhooks/${id}`, { method: 'DELETE' }),
+};

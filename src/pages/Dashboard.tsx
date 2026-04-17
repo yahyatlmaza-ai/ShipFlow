@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import {
   Package, Users, Truck, BarChart3, Bell, LogOut, RefreshCw, Plus,
   CheckCircle, XCircle, Clock, Search, X, AlertCircle, Sun, Moon,
-  Download, Send,
+  Download, Send, Store, Globe, Box, Send as SendIcon, CornerDownLeft,
+  UserCog, Settings as SettingsIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Logo from '../components/Logo';
@@ -15,8 +16,15 @@ import {
   type ApiOrder, type OrderStatus,
 } from '../lib/api';
 import { humanizeError } from '../lib/errorsI18n';
+import {
+  StoresTab, CarriersTab, ProductsTab, ShipmentsTab, ReturnsTab,
+  TeamTab, SettingsTab,
+} from './tabs/OctomaticTabs';
 
-type Tab = 'overview' | 'orders' | 'customers' | 'agents';
+type Tab =
+  | 'overview' | 'orders' | 'customers' | 'agents'
+  | 'stores' | 'carriers' | 'products' | 'shipments'
+  | 'returns' | 'team' | 'settings';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: 'Pending', confirmed: 'Confirmed', shipped: 'Shipped',
@@ -683,6 +691,13 @@ export default function Dashboard() {
     { key: 'orders', label: 'Orders', icon: Package },
     { key: 'customers', label: 'Customers', icon: Users },
     { key: 'agents', label: 'Agents', icon: Truck },
+    { key: 'stores', label: 'Stores', icon: Store },
+    { key: 'carriers', label: 'Carriers', icon: Globe },
+    { key: 'products', label: 'Products', icon: Box },
+    { key: 'shipments', label: 'Shipments', icon: SendIcon },
+    { key: 'returns', label: 'Returns', icon: CornerDownLeft },
+    { key: 'team', label: 'Team', icon: UserCog },
+    { key: 'settings', label: 'Settings', icon: SettingsIcon },
   ], []);
 
   const logout = () => { signOut(); navigate('/'); };
@@ -753,6 +768,13 @@ export default function Dashboard() {
         {tab === 'orders' && <OrdersTab />}
         {tab === 'customers' && <CustomersTab />}
         {tab === 'agents' && <AgentsTab />}
+        {tab === 'stores' && <StoresTab />}
+        {tab === 'carriers' && <CarriersTab />}
+        {tab === 'products' && <ProductsTab />}
+        {tab === 'shipments' && <ShipmentsTab />}
+        {tab === 'returns' && <ReturnsTab />}
+        {tab === 'team' && <TeamTab />}
+        {tab === 'settings' && <SettingsTab />}
       </main>
 
       {trialExpired && <TrialExpiredWall />}

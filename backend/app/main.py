@@ -3,7 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
 from .errors import register_error_handlers
-from .routers import agents, auth, customers, dashboard, notifications, orders, subscriptions
+from .routers import (
+    agents,
+    auth,
+    carriers,
+    customers,
+    dashboard,
+    notifications,
+    orders,
+    products,
+    returns,
+    settings as settings_router,
+    shipments,
+    stores,
+    subscriptions,
+    team,
+    webhooks,
+)
 
 app = FastAPI(title="auto Flow API", version="1.0.0")
 
@@ -36,3 +52,12 @@ app.include_router(orders.router)
 app.include_router(notifications.router)
 app.include_router(subscriptions.router)
 app.include_router(dashboard.router)
+# Octomatic-style extensions
+app.include_router(stores.router)
+app.include_router(carriers.router)
+app.include_router(products.router)
+app.include_router(shipments.router)
+app.include_router(returns.router)
+app.include_router(team.router)
+app.include_router(settings_router.router)
+app.include_router(webhooks.router)
