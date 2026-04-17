@@ -79,10 +79,12 @@ def signup(body: SignupRequest, session: Session = Depends(get_session)) -> Auth
             fields={"email": "Already registered"},
         )
 
-    # Auto-create tenant with unique slug.
+    # Auto-create tenant with unique slug. Start `suffix` at 0 and increment
+    # BEFORE composing the string so the first collision resolves to
+    # `{base}-1`, then `{base}-2`, … without skipping `-1`.
     base_slug = _slugify(body.company_name or body.email.split("@", 1)[0])
     slug = base_slug
-    suffix = 1
+    suffix = 0
     while session.exec(select(Tenant).where(Tenant.slug == slug)).first():
         suffix += 1
         slug = f"{base_slug}-{suffix}"

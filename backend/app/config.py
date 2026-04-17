@@ -24,8 +24,12 @@ if load_dotenv is not None:
 
 
 def _env(name: str, default: str) -> str:
+    # Use `is not None` rather than truthiness so that an explicitly-set empty
+    # string is honoured instead of silently falling back to the hardcoded
+    # default. For `AUTOFLOW_JWT_SECRET` especially, swapping an accidental
+    # `FOO=` for the known-public default would let an attacker forge JWTs.
     value = os.environ.get(name)
-    return value if value else default
+    return value if value is not None else default
 
 
 # Database selection:
