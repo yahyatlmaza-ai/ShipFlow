@@ -1,0 +1,136 @@
+.dashboard {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dashboard h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text-light);
+}
+
+html.dark .dashboard h1 {
+  color: var(--text-dark);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+html.dark .stat-card {
+  background-color: var(--bg-dark);
+  border-color: var(--border-dark);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-card.blue .stat-icon {
+  background-color: #dbeafe;
+  color: #0284c7;
+}
+
+html.dark .stat-card.blue .stat-icon {
+  background-color: rgba(2, 132, 199, 0.1);
+}
+
+.stat-card.green .stat-icon {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+html.dark .stat-card.green .stat-icon {
+  background-color: rgba(22, 163, 74, 0.1);
+}
+
+.stat-card.purple .stat-icon {
+  background-color: #e9d5ff;
+  color: #9333ea;
+}
+
+html.dark .stat-card.purple .stat-icon {
+  background-color: rgba(147, 51, 234, 0.1);
+}
+
+.stat-card.orange .stat-icon {
+  background-color: #fed7aa;
+  color: #ea580c;
+}
+
+html.dark .stat-card.orange .stat-icon {
+  background-color: rgba(234, 88, 12, 0.1);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-title {
+  font-size: 0.875rem;
+  color: var(--text-light-secondary);
+  margin-bottom: 0.25rem;
+}
+
+html.dark .stat-title {
+  color: var(--text-dark-secondary);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+html.dark .stat-value {
+  color: var(--text-dark);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  font-size: 1.125rem;
+  color: var(--text-light-secondary);
+}
+
+html.dark .loading {
+  color: var(--text-dark-secondary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
