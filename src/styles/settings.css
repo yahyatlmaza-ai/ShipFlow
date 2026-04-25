@@ -1,0 +1,107 @@
+.settings-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.settings-page h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text-light);
+}
+
+html.dark .settings-page h1 {
+  color: var(--text-dark);
+}
+
+.settings-container {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 2rem;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  color: var(--text-light-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+html.dark .nav-item {
+  border-color: var(--border-dark);
+  color: var(--text-dark-secondary);
+}
+
+.nav-item:hover {
+  background-color: var(--bg-light-secondary);
+  color: var(--color-primary);
+}
+
+html.dark .nav-item:hover {
+  background-color: var(--bg-dark-secondary);
+}
+
+.nav-item.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.settings-content {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+
+html.dark .settings-content {
+  background-color: var(--bg-dark);
+  border-color: var(--border-dark);
+}
+
+.settings-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-light);
+}
+
+html.dark .settings-section h2 {
+  color: var(--text-dark);
+}
+
+.settings-section p {
+  color: var(--text-light-secondary);
+  font-size: 1.125rem;
+}
+
+html.dark .settings-section p {
+  color: var(--text-dark-secondary);
+}
+
+@media (max-width: 768px) {
+  .settings-container {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .nav-item {
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,157 @@
+.analytics-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.analytics-page h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text-light);
+}
+
+html.dark .analytics-page h1 {
+  color: var(--text-dark);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+html.dark .stat-card {
+  background-color: var(--bg-dark);
+  border-color: var(--border-dark);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  flex-shrink: 0;
+}
+
+.stat-content p {
+  margin: 0;
+  color: var(--text-light-secondary);
+  font-size: 0.875rem;
+}
+
+html.dark .stat-content p {
+  color: var(--text-dark-secondary);
+}
+
+.stat-content .value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-top: 0.25rem;
+}
+
+html.dark .stat-content .value {
+  color: var(--text-dark);
+}
+
+.chart-section {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+
+html.dark .chart-section {
+  background-color: var(--bg-dark);
+  border-color: var(--border-dark);
+}
+
+.chart-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--text-light);
+}
+
+html.dark .chart-section h2 {
+  color: var(--text-dark);
+}
+
+.status-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.status-item {
+  display: grid;
+  grid-template-columns: 100px 1fr 50px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.status-name {
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: capitalize;
+}
+
+html.dark .status-name {
+  color: var(--text-dark);
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: var(--bg-light-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+html.dark .progress-bar {
+  background-color: var(--bg-dark-secondary);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transition: width 0.3s ease;
+}
+
+.status-count {
+  text-align: right;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-light-secondary);
+  font-size: 1.125rem;
+}
+
+html.dark .loading {
+  color: var(--text-dark-secondary);
+}
