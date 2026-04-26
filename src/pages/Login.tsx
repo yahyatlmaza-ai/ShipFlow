@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react'
 import '../styles/auth.css'
 
@@ -16,6 +17,7 @@ interface LoginError {
 
 export default function Login() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -69,25 +71,14 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await login(formData.email, formData.password)
 
-      // Mock successful login
-      const userData = {
-        id: '1',
-        email: formData.email,
-        name: formData.email.split('@')[0],
-        loginTime: new Date().toISOString()
+      // Check if admin
+      if (formData.email === 'admin@autoflow.com') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
       }
-
-      // Store user data in localStorage
-      localStorage.setItem('user', JSON.stringify(userData))
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true')
-      }
-
-      // Navigate to dashboard
-      navigate('/dashboard')
     } catch (error) {
       setErrors({
         general: 'Login failed. Please try again.'
@@ -198,6 +189,12 @@ export default function Login() {
                 'Sign In'
               )}
             </button>
+
+            <div className="demo-credentials">
+              <p>Demo Credentials:</p>
+              <p>Admin: admin@autoflow.com / AutoFlow@2024</p>
+              <p>User: user1@example.com / password123</p>
+            </div>
           </form>
 
           <div className="auth-footer">
